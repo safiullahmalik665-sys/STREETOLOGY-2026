@@ -131,12 +131,10 @@
                     const userCredential = await signInWithEmailAndPassword(auth, email, pw);
                     const user = userCredential.user;
                     
+                    // Securely fetch role from database only
                     const snap = await get(ref(db, 'users/' + user.uid));
                     const userData = snap.exists() ? snap.val() : {};
-                    
-                    // Allow UI access for admin email directly so you don't get locked out
                     let role = userData.role || 'user';
-                    if(email === 'samimalik67@gmail.com') role = 'admin';
 
                     return { role: role, name: userData.name || (role === 'admin' ? 'Admin' : 'User'), phone: email, _id: user.uid };
                 } catch(error) { throw error.message; }
@@ -146,8 +144,8 @@
                 try {
                     const userCredential = await createUserWithEmailAndPassword(auth, email, pw);
                     const user = userCredential.user;
-                    let role = email === 'samimalik67@gmail.com' ? 'admin' : 'user';
-                    const userData = { name: n, phone: email, role: role, _id: user.uid };
+                    // Default role is always user for new registrations
+                    const userData = { name: n, phone: email, role: 'user', _id: user.uid };
                     await set(ref(db, 'users/' + user.uid), userData);
                     return userData;
                 } catch (error) { throw error.message; }
@@ -534,7 +532,7 @@
                 });
             };
 
-            // BLOCK UNAUTHORIZED USERS
+            // BLOCK UNAUTHORIZED USERS (Based purely on database Role)
             if(!user || user.role !== 'admin') {
                 return (
                     <div className="h-screen flex flex-col items-center justify-center bg-black text-center px-4">
