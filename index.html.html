@@ -156,7 +156,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useContext, createContext } = React;
+        const { useState, useEffect, useContext, createContext, memo } = React;
 
         const Icon = ({ name, size = 20, className, onClick }) => {
             const icons = {
@@ -264,6 +264,74 @@
             );
         };
 
+        // Highly-Optimized Live Countdown Timer Component
+        const CountdownTimer = ({ targetDate }) => {
+            const calculateTime = () => {
+                if (!targetDate) return null;
+                const target = new Date(targetDate).getTime();
+                const now = new Date().getTime();
+                const difference = target - now;
+
+                if (isNaN(target) || difference <= 0) {
+                    return null;
+                }
+
+                return {
+                    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                    minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+                    seconds: Math.floor((difference % (1000 * 60)) / 1000)
+                };
+            };
+
+            const [timeLeft, setTimeLeft] = useState(calculateTime);
+
+            useEffect(() => {
+                setTimeLeft(calculateTime());
+                const interval = setInterval(() => {
+                    const nextTime = calculateTime();
+                    setTimeLeft(nextTime);
+                    if (!nextTime) {
+                        clearInterval(interval);
+                    }
+                }, 1000);
+
+                return () => clearInterval(interval);
+            }, [targetDate]);
+
+            if (!timeLeft) {
+                return (
+                    <div className="text-brand-accent font-mono text-xs tracking-widest text-center py-2 animate-pulse uppercase">
+                        The Drop is Live!
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex gap-4 md:gap-6 justify-center font-mono text-white py-1">
+                    <div className="flex flex-col items-center">
+                        <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.days).padStart(2, '0')}</span>
+                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Days</span>
+                    </div>
+                    <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
+                    <div className="flex flex-col items-center">
+                        <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.hours).padStart(2, '0')}</span>
+                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Hours</span>
+                    </div>
+                    <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
+                    <div className="flex flex-col items-center">
+                        <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Mins</span>
+                    </div>
+                    <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
+                    <div className="flex flex-col items-center">
+                        <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Secs</span>
+                    </div>
+                </div>
+            );
+        };
+
         const DoorOverlay = ({ show }) => {
             const [visible, setVisible] = useState(show);
             const [animate, setAnimate] = useState(false);
@@ -342,40 +410,10 @@
         const Hero = ({ onEnter }) => {
             const { settings, isLoading } = useContext(SettingsCtx);
             const [loaded, setLoaded] = useState(false);
-            const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
             
             useEffect(() => {
                 setLoaded(true);
             }, []);
-
-            useEffect(() => {
-                if (!settings.locked || !settings.dropDate) {
-                    setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
-                    return;
-                }
-
-                const calculateTime = () => {
-                    const target = new Date(settings.dropDate).getTime();
-                    const now = new Date().getTime();
-                    const difference = target - now;
-
-                    if (isNaN(target) || difference <= 0) {
-                        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
-                        return;
-                    }
-
-                    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-                    setTimeLeft({ days, hours, minutes, seconds, expired: false });
-                };
-
-                calculateTime();
-                const interval = setInterval(calculateTime, 1000);
-                return () => clearInterval(interval);
-            }, [settings.locked, settings.dropDate]);
 
             if (isLoading) return <div className="h-screen bg-[#050505] w-full flex items-center justify-center"><div className="text-brand-accent animate-pulse font-mono tracking-widest text-xs">CONNECTING...</div></div>;
             
@@ -393,41 +431,15 @@
                             <p className="text-brand-accent font-mono text-[10px] tracking-[0.5em] mb-3 uppercase">Upcoming Drop</p>
                             <h1 className="text-3xl sm:text-4xl md:text-7xl font-black text-white leading-none mb-4 uppercase tracking-tighter break-words">{settings.dropTitle || "RESTRICTED ACCESS"}</h1>
                             
-                            {/* Live Minimalistic Countdown Display */}
-                            {!timeLeft.expired ? (
+                            {/* Live Active Countdown Component */}
+                            {settings.dropDate && (
                                 <div className="max-w-md mx-auto bg-white/5 border border-white/10 rounded px-6 py-4 my-6 backdrop-blur-md">
-                                    <div className="flex gap-4 md:gap-6 justify-center font-mono text-white">
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.days).padStart(2, '0')}</span>
-                                            <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Days</span>
-                                        </div>
-                                        <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.hours).padStart(2, '0')}</span>
-                                            <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Hours</span>
-                                        </div>
-                                        <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.minutes).padStart(2, '0')}</span>
-                                            <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Mins</span>
-                                        </div>
-                                        <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.seconds).padStart(2, '0')}</span>
-                                            <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Secs</span>
-                                        </div>
-                                    </div>
+                                    <CountdownTimer targetDate={settings.dropDate} />
                                 </div>
-                            ) : (
-                                settings.dropDate && (
-                                    <div className="text-brand-accent font-mono text-xs tracking-widest my-8 animate-pulse">
-                                        THE DROP IS LIVE NOW!
-                                    </div>
-                                )
                             )}
 
                             <div className="flex flex-col items-center gap-4">
-                                <span className="bg-white text-black px-8 py-2 font-black tracking-widest text-[10px]">{timeLeft.expired ? 'LOCKED' : 'LAUNCHING SOON'}</span>
+                                <span className="bg-white text-black px-8 py-2 font-black tracking-widest text-[10px]">{settings.dropDate ? 'LAUNCHING SOON' : 'LOCKED'}</span>
                                 <a href="#auth" className="text-[10px] text-gray-600 hover:text-white mt-4 flex items-center gap-2 uppercase font-bold tracking-widest"><Icon name="User" size={12}/> Login</a>
                             </div>
                         </div>
@@ -825,12 +837,20 @@
                                 <input type="datetime-local" value={dropForm.dropDate} onChange={e=>setDropForm({...dropForm, dropDate: e.target.value})} className="w-full p-4 text-[10px] uppercase font-black font-mono"/>
                             </div>
 
+                            {/* Live Preview inside admin setup to instantly verify it works */}
+                            {dropForm.dropDate && (
+                                <div className="border border-brand-accent/20 p-4 rounded bg-brand-accent/5">
+                                    <p className="text-[8px] text-brand-accent font-bold tracking-widest text-center mb-3 uppercase font-mono">LIVE PREVIEW ON HOMEPAGE</p>
+                                    <CountdownTimer targetDate={dropForm.dropDate} />
+                                </div>
+                            )}
+
                             <div>
                                 <label className="text-[9px] text-gray-500 block mb-2 tracking-widest">TEASER IMAGE</label>
                                 <input type="file" onChange={(e)=>{ const file = e.target.files[0]; if(file) { compressImage(file).then(res => setDropForm({...dropForm, dropImage: res})); } }} className="text-[10px] w-full"/>
                             </div>
 
-                            <button onClick={() => { updateSettings({...settings, ...dropForm}); alert('Saved'); }} className="w-full bg-white text-black font-black py-5 uppercase text-[10px] tracking-widest font-mono">Update config</button>
+                            <button onClick={() => { updateSettings({...settings, ...dropForm}); alert('Drop settings saved successfully!'); }} className="w-full bg-white text-black font-black py-5 uppercase text-[10px] tracking-widest font-mono">Update config</button>
                         </div>
                     )}
                 </div>
@@ -1021,7 +1041,7 @@
             );
         };
 
-        ReactDOM.createRoot(document.getElementById('root')).render((<App />));
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
