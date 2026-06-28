@@ -10,8 +10,6 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
         tailwind.config = {
@@ -56,101 +54,101 @@
             appId: "1:304726277276:web:08222d18c2f8eee73ac159"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const auth = getAuth(app);
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getDatabase(app);
+            const auth = getAuth(app);
 
-        window.DB = {
-            async getSettings() {
-                try {
-                    const s = await get(ref(db, 'settings'));
-                    return s.exists() ? s.val() : { locked: false, dropTitle: "MYSTERY DROP", dropImage: "" };
-                } catch(e) { console.error(e); return { locked: false }; }
-            },
-            async updateSettings(settings) { await update(ref(db, 'settings'), settings); },
-            
-            async getProducts() {
-                try {
-                    const s = await get(ref(db, 'products'));
-                    return s.exists() ? Object.entries(s.val()).map(([k, v]) => ({...v, _id: k})) : [];
-                } catch(e) { console.error(e); return []; }
-            },
-            async createProduct(p) {
-                const r = push(ref(db, 'products'));
-                await set(r, {...p, _id: r.key});
-            },
-            async updateProduct(id, data) {
-                await update(ref(db, `products/${id}`), data);
-            },
-            async toggleStock(id, status) {
-                await update(ref(db, `products/${id}`), { status: status === 'sold_out' ? 'active' : 'sold_out' });
-            },
-            async deleteProduct(id) { await remove(ref(db, `products/${id}`)); },
+            window.DB = {
+                async getSettings() {
+                    try {
+                        const s = await get(ref(db, 'settings'));
+                        return s.exists() ? s.val() : { locked: false, dropTitle: "MYSTERY DROP", dropImage: "", dropDate: "" };
+                    } catch(e) { console.error(e); return { locked: false, dropTitle: "STREETOLOGY", dropImage: "", dropDate: "" }; }
+                },
+                async updateSettings(settings) { await update(ref(db, 'settings'), settings); },
+                
+                async getProducts() {
+                    try {
+                        const s = await get(ref(db, 'products'));
+                        return s.exists() ? Object.entries(s.val()).map(([k, v]) => ({...v, _id: k})) : [];
+                    } catch(e) { console.error(e); return []; }
+                },
+                async createProduct(p) {
+                    const r = push(ref(db, 'products'));
+                    await set(r, {...p, _id: r.key});
+                },
+                async updateProduct(id, data) {
+                    await update(ref(db, `products/${id}`), data);
+                },
+                async toggleStock(id, status) {
+                    await update(ref(db, `products/${id}`), { status: status === 'sold_out' ? 'active' : 'sold_out' });
+                },
+                async deleteProduct(id) { await remove(ref(db, `products/${id}`)); },
 
-            async getVouchers() {
-                try {
-                    const s = await get(ref(db, 'vouchers'));
-                    return s.exists() ? Object.entries(s.val()).map(([k, v]) => ({...v, _id: k})) : [];
-                } catch(e) { return []; }
-            },
-            async createVoucher(v) {
-                const r = push(ref(db, 'vouchers'));
-                await set(r, v);
-            },
-            async deleteVoucher(id) { await remove(ref(db, `vouchers/${id}`)); },
+                async getVouchers() {
+                    try {
+                        const s = await get(ref(db, 'vouchers'));
+                        return s.exists() ? Object.entries(s.val()).map(([k, v]) => ({...v, _id: k})) : [];
+                    } catch(e) { return []; }
+                },
+                async createVoucher(v) {
+                    const r = push(ref(db, 'vouchers'));
+                    await set(r, v);
+                },
+                async deleteVoucher(id) { await remove(ref(db, `vouchers/${id}`)); },
 
-            async sendMessage(msg) {
-                const r = push(ref(db, 'messages'));
-                await set(r, { ...msg, createdAt: new Date().toLocaleString() });
-            },
-            async getMessages() {
-                try {
-                    const s = await get(ref(db, 'messages'));
-                    return s.exists() ? Object.entries(s.val()).map(([k, v]) => ({...v, _id: k})).reverse() : [];
-                } catch(e) { return []; }
-            },
-            async deleteMessage(id) { await remove(ref(db, `messages/${id}`)); },
+                async sendMessage(msg) {
+                    const r = push(ref(db, 'messages'));
+                    await set(r, { ...msg, createdAt: new Date().toLocaleString() });
+                },
+                async getMessages() {
+                    try {
+                        const s = await get(ref(db, 'messages'));
+                        return s.exists() ? Object.entries(s.val()).map(([k, v]) => ({...v, _id: k})).reverse() : [];
+                    } catch(e) { return []; }
+                },
+                async deleteMessage(id) { await remove(ref(db, `messages/${id}`)); },
 
-            async createOrder(o) {
-                const r = push(ref(db, 'orders'));
-                await set(r, { ...o, _id: 'ORD-'+r.key.slice(-5).toUpperCase(), status: 'Pending', createdAt: new Date().toLocaleString() });
-            },
-            async getOrders() {
-                const s = await get(ref(db, 'orders'));
-                return s.exists() ? Object.entries(s.val()).map(([k, v]) => ({...v, dbKey: k})).reverse() : [];
-            },
-            async getUserOrders(phone) {
-                const s = await get(ref(db, 'orders'));
-                if(!s.exists()) return [];
-                return Object.values(s.val()).filter(o => o.shipping.phone === phone).reverse();
-            },
-            async updateOrderStatus(k, s) { await update(ref(db, `orders/${k}`), { status: s }); },
-            
-            async login(email, pw) {
-                try {
-                    const userCredential = await signInWithEmailAndPassword(auth, email, pw);
-                    const user = userCredential.user;
-                    
-                    // Securely fetch role from database only
-                    const snap = await get(ref(db, 'users/' + user.uid));
-                    const userData = snap.exists() ? snap.val() : {};
-                    let role = userData.role || 'user';
+                async createOrder(o) {
+                    const r = push(ref(db, 'orders'));
+                    await set(r, { ...o, _id: 'ORD-'+r.key.slice(-5).toUpperCase(), status: 'Pending', createdAt: new Date().toLocaleString() });
+                },
+                async getOrders() {
+                    const s = await get(ref(db, 'orders'));
+                    return s.exists() ? Object.entries(s.val()).map(([k, v]) => ({...v, dbKey: k})).reverse() : [];
+                },
+                async getUserOrders(phone) {
+                    const s = await get(ref(db, 'orders'));
+                    if(!s.exists()) return [];
+                    return Object.values(s.val()).filter(o => o.shipping.phone === phone).reverse();
+                },
+                async updateOrderStatus(k, s) { await update(ref(db, `orders/${k}`), { status: s }); },
+                
+                async login(email, pw) {
+                    try {
+                        const userCredential = await signInWithEmailAndPassword(auth, email, pw);
+                        const user = userCredential.user;
+                        const snap = await get(ref(db, 'users/' + user.uid));
+                        const userData = snap.exists() ? snap.val() : {};
+                        let role = userData.role || 'user';
+                        return { role: role, name: userData.name || (role === 'admin' ? 'Admin' : 'User'), phone: email, _id: user.uid };
+                    } catch(error) { throw error.message; }
+                },
 
-                    return { role: role, name: userData.name || (role === 'admin' ? 'Admin' : 'User'), phone: email, _id: user.uid };
-                } catch(error) { throw error.message; }
-            },
-
-            async register(n, email, pw) {
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, pw);
-                    const user = userCredential.user;
-                    // Default role is always user for new registrations
-                    const userData = { name: n, phone: email, role: 'user', _id: user.uid };
-                    await set(ref(db, 'users/' + user.uid), userData);
-                    return userData;
-                } catch (error) { throw error.message; }
-            }
-        };
+                async register(n, email, pw) {
+                    try {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, pw);
+                        const user = userCredential.user;
+                        const userData = { name: n, phone: email, role: 'user', _id: user.uid };
+                        await set(ref(db, 'users/' + user.uid), userData);
+                        return userData;
+                    } catch (error) { throw error.message; }
+                }
+            };
+        } catch (e) {
+            console.warn("Database initialization postponed:", e);
+        }
         window.dispatchEvent(new Event('db-ready'));
     </script>
 </head>
@@ -159,7 +157,6 @@
 
     <script type="text/babel">
         const { useState, useEffect, useContext, createContext } = React;
-        const { motion, AnimatePresence } = window.Motion;
 
         const Icon = ({ name, size = 20, className, onClick }) => {
             const icons = {
@@ -187,8 +184,12 @@
 
         const AuthProvider = ({children}) => {
             const [user, setUser] = useState(() => {
-                const saved = localStorage.getItem('street_user');
-                return saved && saved !== "undefined" ? JSON.parse(saved) : null;
+                try {
+                    const saved = localStorage.getItem('street_user');
+                    return saved && saved !== "undefined" ? JSON.parse(saved) : null;
+                } catch(e) {
+                    return null;
+                }
             });
             const login = async (id, pw) => {
                 try { const u = await window.DB.login(id, pw); setUser(u); localStorage.setItem('street_user', JSON.stringify(u)); return u; } 
@@ -217,50 +218,82 @@
 
         const SettingsProvider = ({children}) => {
             const [settings, setSettings] = useState(() => {
-                const cached = localStorage.getItem('street_settings');
-                return cached ? JSON.parse(cached) : null;
+                try {
+                    const cached = localStorage.getItem('street_settings');
+                    return cached ? JSON.parse(cached) : { locked: false, dropTitle: "STREETOLOGY", dropImage: "", dropDate: "" };
+                } catch(e) {
+                    return { locked: false, dropTitle: "STREETOLOGY", dropImage: "", dropDate: "" };
+                }
             });
+            const [isLoading, setIsLoading] = useState(false);
+
             useEffect(() => {
                 const f = async () => { 
                     if(window.DB) {
-                        const s = await window.DB.getSettings();
-                        setSettings(s);
-                        localStorage.setItem('street_settings', JSON.stringify(s));
+                        try {
+                            const s = await window.DB.getSettings();
+                            if(s) {
+                                setSettings(s);
+                                localStorage.setItem('street_settings', JSON.stringify(s));
+                            }
+                        } catch(e) {
+                            console.error(e);
+                        }
                     }
                 };
-                f(); 
-                window.addEventListener('db-ready', f); 
-                return ()=>window.removeEventListener('db-ready', f);
+                
+                f();
+                window.addEventListener('db-ready', f);
+                return () => {
+                    window.removeEventListener('db-ready', f);
+                };
             }, []);
 
-            return <SettingsCtx.Provider value={{
-                settings: settings || { locked: false, dropTitle: "", dropImage: "" }, 
-                isLoading: settings === null, 
-                updateSettings: (s) => { 
-                    setSettings(s); 
-                    localStorage.setItem('street_settings', JSON.stringify(s));
-                    window.DB.updateSettings(s); 
-                }
-            }}>{children}</SettingsCtx.Provider>
+            return (
+                <SettingsCtx.Provider value={{
+                    settings: settings, 
+                    isLoading: isLoading, 
+                    updateSettings: (s) => { 
+                        setSettings(s); 
+                        try {
+                            localStorage.setItem('street_settings', JSON.stringify(s));
+                        } catch(e){}
+                        if(window.DB) window.DB.updateSettings(s); 
+                    }
+                }}>{children}</SettingsCtx.Provider>
+            );
         };
 
         const DoorOverlay = ({ show }) => {
+            const [visible, setVisible] = useState(show);
+            const [animate, setAnimate] = useState(false);
+
+            useEffect(() => {
+                if (show) {
+                    setVisible(true);
+                    const t = setTimeout(() => setAnimate(true), 50);
+                    return () => clearTimeout(t);
+                } else if (visible) {
+                    setAnimate(false);
+                    const t = setTimeout(() => setVisible(false), 800);
+                    return () => clearTimeout(t);
+                }
+            }, [show]);
+
+            if (!visible) return null;
+
             return (
-                <AnimatePresence>
-                    {show && (
-                        <div className="fixed inset-0 z-[100] flex pointer-events-none">
-                            <motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} className="w-1/2 h-full bg-[#0a0a0a] border-r border-gray-800 flex items-center justify-end pr-4">
-                                <div className="h-12 w-1 bg-gray-800/50 rounded-full"></div>
-                            </motion.div>
-                            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} className="w-1/2 h-full bg-[#0a0a0a] border-l border-gray-800 flex items-center justify-start pl-4">
-                                <div className="h-12 w-1 bg-gray-800/50 rounded-full"></div>
-                            </motion.div>
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ delay: 0.3, duration: 0.3 }} className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <span className="text-white/90 font-serif tracking-[0.2em] md:tracking-[0.4em] text-sm md:text-xl text-center px-4 uppercase font-medium">ENTER THE WORLD OF STREETOLOGY</span>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                <div className="fixed inset-0 z-[100] flex pointer-events-none transition-opacity duration-500">
+                    <div className={`w-1/2 h-full bg-[#0a0a0a] border-r border-gray-800 flex items-center justify-end pr-4 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${animate ? 'translate-x-0' : '-translate-x-full'}`}>
+                        <div className="h-12 w-1 bg-gray-800/50 rounded-full"></div>
+                    </div>
+                    <div className={`w-1/2 h-full bg-[#0a0a0a] border-l border-gray-800 flex items-center justify-start pl-4 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${animate ? 'translate-x-0' : 'translate-x-full'}`}>
+                        <div className="h-12 w-1 bg-gray-800/50 rounded-full"></div>
+                    </div>
+                    <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${animate ? 'opacity-100' : 'opacity-0'}`}>
+                        <span className="text-white/90 font-serif tracking-[0.2em] md:tracking-[0.4em] text-sm md:text-xl text-center px-4 uppercase font-medium">ENTER THE WORLD OF STREETOLOGY</span>
+                    </div>
+                </div>
             );
         };
 
@@ -291,26 +324,61 @@
                             {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-brand-accent text-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{cart.length}</span>}
                         </div>
                     </div>
-                    <AnimatePresence>
-                        {menu && (
-                            <motion.div initial={{x:'-100%'}} animate={{x:0}} exit={{x:'-100%'}} className="fixed inset-0 bg-black z-50 flex flex-col p-8 md:hidden">
-                                <div className="flex justify-between mb-10 text-xl font-bold italic">MENU<button onClick={()=>setMenu(false)}><Icon name="X"/></button></div>
-                                <div className="flex flex-col gap-6 text-2xl font-bold text-gray-500 uppercase">
-                                    {['HOME','SHOP','ABOUT','CONTACT'].map(L => <a key={L} href={`#${L.toLowerCase()}`} onClick={()=>setMenu(false)}>{L}</a>)}
-                                    <div className="h-px bg-gray-800 my-4"></div>
-                                    {user ? <a href={user.role === 'admin' ? '#admin' : '#account'} onClick={()=>setMenu(false)}>{user.role === 'admin' ? 'ADMIN PANEL' : 'MY ACCOUNT'}</a> : <a href="#auth" onClick={()=>setMenu(false)}>LOGIN</a>}
-                                    {user && <button onClick={()=>{logout();setMenu(false)}} className="text-left text-brand-accent">LOGOUT</button>}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {menu && (
+                        <div className="fixed inset-0 bg-black z-50 flex flex-col p-8 md:hidden transition-all duration-300">
+                            <div className="flex justify-between mb-10 text-xl font-bold italic">MENU<button onClick={()=>setMenu(false)}><Icon name="X"/></button></div>
+                            <div className="flex flex-col gap-6 text-2xl font-bold text-gray-500 uppercase">
+                                {['HOME','SHOP','ABOUT','CONTACT'].map(L => <a key={L} href={`#${L.toLowerCase()}`} onClick={()=>setMenu(false)}>{L}</a>)}
+                                <div className="h-px bg-gray-800 my-4"></div>
+                                {user ? <a href={user.role === 'admin' ? '#admin' : '#account'} onClick={()=>setMenu(false)}>{user.role === 'admin' ? 'ADMIN PANEL' : 'MY ACCOUNT'}</a> : <a href="#auth" onClick={()=>setMenu(false)}>LOGIN</a>}
+                                {user && <button onClick={()=>{logout();setMenu(false)}} className="text-left text-brand-accent">LOGOUT</button>}
+                            </div>
+                        </div>
+                    )}
                 </nav>
             );
         };
 
         const Hero = ({ onEnter }) => {
             const { settings, isLoading } = useContext(SettingsCtx);
-            if (isLoading) return <div className="h-screen bg-black w-full flex items-center justify-center"></div>;
+            const [loaded, setLoaded] = useState(false);
+            const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
+            
+            useEffect(() => {
+                setLoaded(true);
+            }, []);
+
+            useEffect(() => {
+                if (!settings.locked || !settings.dropDate) {
+                    setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
+                    return;
+                }
+
+                const calculateTime = () => {
+                    const target = new Date(settings.dropDate).getTime();
+                    const now = new Date().getTime();
+                    const difference = target - now;
+
+                    if (difference <= 0) {
+                        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
+                        return;
+                    }
+
+                    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+                    setTimeLeft({ days, hours, minutes, seconds, expired: false });
+                };
+
+                calculateTime();
+                const interval = setInterval(calculateTime, 1000);
+                return () => clearInterval(interval);
+            }, [settings.locked, settings.dropDate]);
+
+            if (isLoading) return <div className="h-screen bg-[#050505] w-full flex items-center justify-center"><div className="text-brand-accent animate-pulse font-mono tracking-widest text-xs">CONNECTING...</div></div>;
+            
             if(settings.locked) {
                 return (
                     <div className="h-screen relative flex flex-col items-center justify-center bg-black overflow-hidden px-4 text-center">
@@ -318,14 +386,40 @@
                             <>
                                 <img src={settings.dropImage} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-2xl grayscale"/>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
-                                <motion.img initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} src={settings.dropImage} className="z-10 max-w-full max-h-[50vh] md:max-h-[60vh] object-contain shadow-2xl mb-8 border border-white/5"/>
+                                <img src={settings.dropImage} className="z-10 max-w-full max-h-[40vh] md:max-h-[50vh] object-contain shadow-2xl mb-6 border border-white/5 transition-transform duration-700"/>
                             </>
                         )}
                         <div className="z-20 w-full">
-                            <p className="text-brand-accent font-mono text-[10px] tracking-[0.5em] mb-4 uppercase">Upcoming Drop</p>
-                            <h1 className="text-3xl sm:text-4xl md:text-7xl font-black text-white leading-none mb-6 uppercase tracking-tighter break-words">{settings.dropTitle || "RESTRICTED ACCESS"}</h1>
+                            <p className="text-brand-accent font-mono text-[10px] tracking-[0.5em] mb-3 uppercase">Upcoming Drop</p>
+                            <h1 className="text-3xl sm:text-4xl md:text-7xl font-black text-white leading-none mb-4 uppercase tracking-tighter break-words">{settings.dropTitle || "RESTRICTED ACCESS"}</h1>
+                            
+                            {/* Live Countdown Timer Grid */}
+                            {!timeLeft.expired && (
+                                <div className="flex gap-4 md:gap-6 justify-center my-6 font-mono text-white">
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-2xl md:text-4xl font-black">{String(timeLeft.days).padStart(2, '0')}</span>
+                                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Days</span>
+                                    </div>
+                                    <span className="text-2xl md:text-4xl font-light text-brand-accent">:</span>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-2xl md:text-4xl font-black">{String(timeLeft.hours).padStart(2, '0')}</span>
+                                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Hours</span>
+                                    </div>
+                                    <span className="text-2xl md:text-4xl font-light text-brand-accent">:</span>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-2xl md:text-4xl font-black">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Mins</span>
+                                    </div>
+                                    <span className="text-2xl md:text-4xl font-light text-brand-accent">:</span>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-2xl md:text-4xl font-black">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Secs</span>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex flex-col items-center gap-4">
-                                <span className="bg-white text-black px-8 py-2 font-black tracking-widest text-[10px]">LOCKED</span>
+                                <span className="bg-white text-black px-8 py-2 font-black tracking-widest text-[10px]">{timeLeft.expired ? 'LOCKED' : 'LAUNCHING SOON'}</span>
                                 <a href="#auth" className="text-[10px] text-gray-600 hover:text-white mt-4 flex items-center gap-2 uppercase font-bold tracking-widest"><Icon name="User" size={12}/> Login</a>
                             </div>
                         </div>
@@ -337,8 +431,8 @@
                     <img src="https://images.unsplash.com/photo-1523398002811-999ca8dec234?auto=format&fit=crop&w=1920&q=80" className="absolute inset-0 w-full h-full object-cover opacity-40 grayscale contrast-125"/>
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60"></div>
                     <div className="z-10 text-center px-4 w-full">
-                        <div className="relative inline-block">
-                            <motion.h1 initial={{y:50, opacity:0}} animate={{y:0, opacity:1}} className="text-5xl sm:text-6xl md:text-9xl font-bold text-white tracking-tighter leading-none mb-4">STREETOLOGY</motion.h1>
+                        <div className="relative inline-block mb-4">
+                            <h1 className={`text-5xl sm:text-6xl md:text-9xl font-bold text-white tracking-tighter leading-none transition-all duration-1000 transform ${loaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>STREETOLOGY</h1>
                             <span className="absolute -bottom-2 -right-4 md:-right-8 text-[8px] md:text-xs font-bold tracking-widest text-brand-accent italic">THE STREETS</span>
                         </div>
                         <p className="text-gray-400 tracking-[0.3em] md:tracking-[0.5em] font-mono mb-12 mt-4 text-[10px] md:text-xs uppercase">Future Wear // Est. 2025</p>
@@ -353,8 +447,14 @@
             const [loading, setLoading] = useState(true);
             useEffect(() => {
                 window.scrollTo(0, 0); 
-                const f = async () => { if (window.DB) { setList(await window.DB.getProducts()); setLoading(false); } };
-                f(); if(!window.DB) window.addEventListener('db-ready', f);
+                const f = async () => { 
+                    if (window.DB) { 
+                        setList(await window.DB.getProducts()); 
+                        setLoading(false); 
+                    } 
+                };
+                f(); 
+                if(!window.DB) window.addEventListener('db-ready', f);
                 return ()=>window.removeEventListener('db-ready', f);
             }, []);
             return (
@@ -365,7 +465,7 @@
 
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
                         {list.map(p => (
-                            <div key={p._id} onClick={()=>{if(p.status!=='sold_out'){setCurr(p); window.location.hash='#product/'+p._id}}} className={`glass-panel p-2 md:p-3 group cursor-pointer ${p.status==='sold_out'?'opacity-50':''}`}>
+                            <div key={p._id} onClick={()=>{if(p.status!=='sold_out'){setCurr(p); window.location.hash='#product/'+p._id}}} className={`glass-panel p-2 md:p-3 group cursor-pointer transition-all duration-300 ${p.status==='sold_out'?'opacity-50':''}`}>
                                 <div className="h-[220px] md:h-[400px] overflow-hidden relative mb-2 md:mb-4 bg-black">
                                     <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400x500?text=No+Image'} className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-80 group-hover:opacity-100"/>
                                     {p.status==='sold_out' && <div className="absolute inset-0 flex items-center justify-center bg-black/60 font-bold tracking-widest text-xs">SOLD OUT</div>}
@@ -507,7 +607,7 @@
             
             const [form, setForm] = useState({ name:'', price:'', salePrice: '', cat:'Hoodies', desc:'', imgs:[], sizes: { S: 0, M: 0, L: 0, XL: 0 } });
             const [voucherForm, setVoucherForm] = useState({ code: '', amount: '' });
-            const [dropForm, setDropForm] = useState({ dropTitle: settings.dropTitle, dropImage: settings.dropImage });
+            const [dropForm, setDropForm] = useState({ dropTitle: '', dropImage: '', dropDate: '' });
             
             const [editingProduct, setEditingProduct] = useState(null);
 
@@ -532,7 +632,6 @@
                 });
             };
 
-            // BLOCK UNAUTHORIZED USERS (Based purely on database Role)
             if(!user || user.role !== 'admin') {
                 return (
                     <div className="h-screen flex flex-col items-center justify-center bg-black text-center px-4">
@@ -552,7 +651,20 @@
                     }); 
                 }
             };
-            useEffect(() => { refresh(); }, []);
+
+            useEffect(() => { 
+                refresh(); 
+            }, []);
+
+            useEffect(() => {
+                if (settings) {
+                    setDropForm({
+                        dropTitle: settings.dropTitle || '',
+                        dropImage: settings.dropImage || '',
+                        dropDate: settings.dropDate || ''
+                    });
+                }
+            }, [settings]);
             
             const addProd = async (e) => {
                 e.preventDefault();
@@ -592,7 +704,7 @@
             };
 
             return (
-                <div className="pt-20 md:pt-24 px-4 md:px-12 pb-20 min-h-screen bg-black uppercase">
+                <div className="pt-20 md:pt-24 px-4 md:px-12 pb-20 min-h-screen bg-black uppercase font-bold text-xs">
                     <div className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 font-black italic">
                         <h1 className="text-xl md:text-2xl text-brand-accent uppercase tracking-widest">Admin Terminal</h1>
                         <button onClick={refresh} className="text-[10px] font-bold border border-gray-700 px-4 py-2 hover:bg-white hover:text-black">REFRESH</button>
@@ -694,9 +806,23 @@
                     {tab === 'dropzone' && (
                         <div className="glass-panel p-6 md:p-8 max-w-xl space-y-6">
                             <button onClick={() => updateSettings({...settings, locked: !settings.locked})} className={`w-full py-5 font-black uppercase text-[10px] text-black tracking-[0.2em] ${settings.locked ? 'bg-red-500' : 'bg-green-500'}`}>{settings.locked ? 'Unlock Store' : 'Lock Store'}</button>
-                            <input placeholder="Drop Title" value={dropForm.dropTitle} onChange={e=>setDropForm({...dropForm, dropTitle: e.target.value})} className="w-full p-4 text-[10px] uppercase font-black"/>
-                            <input type="file" onChange={(e)=>{ const file = e.target.files[0]; if(file) { compressImage(file).then(res => setDropForm({...dropForm, dropImage: res})); } }} className="text-[10px] w-full"/>
-                            <button onClick={() => { updateSettings({...settings, ...dropForm}); alert('Saved'); }} className="w-full bg-white text-black font-black py-5 uppercase text-[10px] tracking-widest">Update config</button>
+                            
+                            <div>
+                                <label className="text-[9px] text-gray-500 block mb-2 tracking-widest">DROP TITLE</label>
+                                <input placeholder="Drop Title" value={dropForm.dropTitle} onChange={e=>setDropForm({...dropForm, dropTitle: e.target.value})} className="w-full p-4 text-[10px] uppercase font-black"/>
+                            </div>
+
+                            <div>
+                                <label className="text-[9px] text-gray-500 block mb-2 tracking-widest">SCHEDULE DROP DATE & TIME</label>
+                                <input type="datetime-local" value={dropForm.dropDate} onChange={e=>setDropForm({...dropForm, dropDate: e.target.value})} className="w-full p-4 text-[10px] uppercase font-black"/>
+                            </div>
+
+                            <div>
+                                <label className="text-[9px] text-gray-500 block mb-2 tracking-widest">DROP TEASER IMAGE</label>
+                                <input type="file" onChange={(e)=>{ const file = e.target.files[0]; if(file) { compressImage(file).then(res => setDropForm({...dropForm, dropImage: res})); } }} className="text-[10px] w-full"/>
+                            </div>
+
+                            <button onClick={() => { updateSettings({...settings, ...dropForm}); alert('Drop configuration updated successfully!'); }} className="w-full bg-white text-black font-black py-5 uppercase text-[10px] tracking-widest">Update config</button>
                         </div>
                     )}
                 </div>
@@ -705,27 +831,24 @@
 
         const CartSidebar = () => {
             const { cart, open, setOpen, remove, total } = useContext(CartCtx);
+            if (!open) return null;
             return (
-                <AnimatePresence>
-                    {open && (
-                        <>
-                            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={()=>setOpen(false)} className="fixed inset-0 bg-black/80 z-50 backdrop-blur-sm"/>
-                            <motion.div initial={{x:'100%'}} animate={{x:0}} exit={{x:'100%'}} className="fixed right-0 top-0 h-full w-full md:w-[400px] bg-[#0a0a0a] border-l border-gray-800 z-50 flex flex-col uppercase">
-                                <div className="p-6 border-b border-gray-800 flex justify-between items-center font-black italic tracking-widest">BAG<button onClick={()=>setOpen(false)}><Icon name="X"/></button></div>
-                                <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                                    {cart.map(i => (
-                                        <div key={i._id+i.size} className="flex gap-4 glass-panel p-3">
-                                            <img src={i.images && i.images[0] ? i.images[0] : 'https://via.placeholder.com/100'} className="w-16 h-20 object-cover flex-shrink-0"/>
-                                            <div className="flex-1 min-w-0"><div className="flex justify-between font-bold text-[10px] tracking-tight"><span>{i.name}</span><span>₹{i.price*i.qty}</span></div><p className="text-[10px] text-gray-500 mt-1 uppercase italic">{i.size} | Qty: {i.qty}</p><button onClick={()=>remove(i._id,i.size)} className="text-[10px] text-red-500 font-bold mt-3 tracking-widest">REMOVE</button></div>
-                                        </div>
-                                    ))}
-                                    {!cart.length && <div className="text-center text-gray-600 mt-20 uppercase text-[10px] tracking-[0.3em] italic">Bag is empty</div>}
+                <>
+                    <div onClick={()=>setOpen(false)} className="fixed inset-0 bg-black/80 z-50 backdrop-blur-sm transition-opacity duration-300" />
+                    <div className="fixed right-0 top-0 h-full w-full md:w-[400px] bg-[#0a0a0a] border-l border-gray-800 z-50 flex flex-col uppercase transform transition-transform duration-300">
+                        <div className="p-6 border-b border-gray-800 flex justify-between items-center font-black italic tracking-widest">BAG<button onClick={()=>setOpen(false)}><Icon name="X"/></button></div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            {cart.map(i => (
+                                <div key={i._id+i.size} className="flex gap-4 glass-panel p-3">
+                                    <img src={i.images && i.images[0] ? i.images[0] : 'https://via.placeholder.com/100'} className="w-16 h-20 object-cover flex-shrink-0"/>
+                                    <div className="flex-1 min-w-0"><div className="flex justify-between font-bold text-[10px] tracking-tight"><span>{i.name}</span><span>₹{i.price*i.qty}</span></div><p className="text-[10px] text-gray-500 mt-1 uppercase italic">{i.size} | Qty: {i.qty}</p><button onClick={()=>remove(i._id,i.size)} className="text-[10px] text-red-500 font-bold mt-3 tracking-widest">REMOVE</button></div>
                                 </div>
-                                {cart.length>0 && <div className="p-6 border-t border-gray-800"><button onClick={()=>{setOpen(false);window.location.hash='#checkout'}} className="w-full bg-white text-black py-5 font-black uppercase tracking-widest text-[10px]">Checkout - ₹{total}</button></div>}
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
+                            ))}
+                            {!cart.length && <div className="text-center text-gray-600 mt-20 uppercase text-[10px] tracking-[0.3em] italic">Bag is empty</div>}
+                        </div>
+                        {cart.length>0 && <div className="p-6 border-t border-gray-800"><button onClick={()=>{setOpen(false);window.location.hash='#checkout'}} className="w-full bg-white text-black py-5 font-black uppercase tracking-widest text-[10px]">Checkout - ₹{total}</button></div>}
+                    </div>
+                </>
             );
         };
 
@@ -871,18 +994,18 @@
                         <CartProvider>
                             <Navbar/>
                             <DoorOverlay show={entering} />
-                            <AnimatePresence mode="wait">
-                                {view === 'home' && <Hero key="h" onEnter={handleEnterStore}/>}
-                                {view === 'shop' && <Shop key="s" setCurr={setCurr}/>}
-                                {view === 'product' && <Product key="p" p={curr}/>}
-                                {view === 'checkout' && <Checkout key="c"/>}
-                                {view === 'admin' && <Admin key="a"/>} 
-                                {view === 'account' && <Account key="ac"/>}
-                                {view === 'auth' && <Auth key="au"/>}
-                                {view === 'success' && <div key="s" className="h-screen flex items-center justify-center flex-col text-center px-4 uppercase font-black italic"><Icon name="CheckCircle" size={80} className="text-green-500 mb-6"/><h1 className="text-3xl md:text-4xl mb-4 tracking-tighter">Order Success</h1><p className="text-gray-500 text-[10px] mb-8 tracking-[0.3em] font-black">Thank you for your order.</p><div className="flex gap-4"><a href="#account" className="bg-white text-black px-6 py-3 text-[10px] uppercase tracking-widest not-italic">Track Order</a><a href="#shop" className="border border-white text-white px-6 py-3 text-[10px] uppercase tracking-widest not-italic">Continue</a></div></div>}
-                                {view === 'about' && <div className="pt-32 text-center max-w-2xl mx-auto px-4 uppercase font-black"><h1 className="text-4xl mb-4 italic tracking-tighter">Streetology</h1><p className="text-gray-500 tracking-[0.2em] text-[10px] leading-relaxed italic">STREETOLOGY — started in 2025. Where we’ll be in 2030, only time will tell. But till then, we promise to bring you the best of streetwear. Thank you.</p></div>}
-                                {view === 'contact' && <Contact key="contact"/>}
-                            </AnimatePresence>
+                            
+                            {view === 'home' && <Hero onEnter={handleEnterStore}/>}
+                            {view === 'shop' && <Shop setCurr={setCurr}/>}
+                            {view === 'product' && <Product p={curr}/>}
+                            {view === 'checkout' && <Checkout/>}
+                            {view === 'admin' && <Admin/>} 
+                            {view === 'account' && <Account/>}
+                            {view === 'auth' && <Auth/>}
+                            {view === 'success' && <div className="h-screen flex items-center justify-center flex-col text-center px-4 uppercase font-black italic"><Icon name="CheckCircle" size={80} className="text-green-500 mb-6"/><h1 className="text-3xl md:text-4xl mb-4 tracking-tighter">Order Success</h1><p className="text-gray-500 text-[10px] mb-8 tracking-[0.3em] font-black">Thank you for your order.</p><div className="flex gap-4"><a href="#account" className="bg-white text-black px-6 py-3 text-[10px] uppercase tracking-widest not-italic">Track Order</a><a href="#shop" className="border border-white text-white px-6 py-3 text-[10px] uppercase tracking-widest not-italic">Continue</a></div></div>}
+                            {view === 'about' && <div className="pt-32 text-center max-w-2xl mx-auto px-4 uppercase font-black"><h1 className="text-4xl mb-4 italic tracking-tighter">Streetology</h1><p className="text-gray-500 tracking-[0.2em] text-[10px] leading-relaxed italic">STREETOLOGY — started in 2025. Where we’ll be in 2030, only time will tell. But till then, we promise to bring you the best of streetwear. Thank you.</p></div>}
+                            {view === 'contact' && <Contact/>}
+                            
                             <CartSidebar/>
                         </CartProvider>
                     </SettingsProvider>
