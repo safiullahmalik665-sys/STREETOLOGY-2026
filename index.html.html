@@ -359,7 +359,7 @@
                     const now = new Date().getTime();
                     const difference = target - now;
 
-                    if (difference <= 0) {
+                    if (isNaN(target) || difference <= 0) {
                         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
                         return;
                     }
@@ -386,36 +386,44 @@
                             <>
                                 <img src={settings.dropImage} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-2xl grayscale"/>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
-                                <img src={settings.dropImage} className="z-10 max-w-full max-h-[40vh] md:max-h-[50vh] object-contain shadow-2xl mb-6 border border-white/5 transition-transform duration-700"/>
+                                <img src={settings.dropImage} className="z-10 max-w-full max-h-[45vh] md:max-h-[50vh] object-contain shadow-2xl mb-6 border border-white/5 transition-transform duration-700"/>
                             </>
                         )}
                         <div className="z-20 w-full">
                             <p className="text-brand-accent font-mono text-[10px] tracking-[0.5em] mb-3 uppercase">Upcoming Drop</p>
                             <h1 className="text-3xl sm:text-4xl md:text-7xl font-black text-white leading-none mb-4 uppercase tracking-tighter break-words">{settings.dropTitle || "RESTRICTED ACCESS"}</h1>
                             
-                            {/* Live Countdown Timer Grid */}
-                            {!timeLeft.expired && (
-                                <div className="flex gap-4 md:gap-6 justify-center my-6 font-mono text-white">
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-2xl md:text-4xl font-black">{String(timeLeft.days).padStart(2, '0')}</span>
-                                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Days</span>
-                                    </div>
-                                    <span className="text-2xl md:text-4xl font-light text-brand-accent">:</span>
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-2xl md:text-4xl font-black">{String(timeLeft.hours).padStart(2, '0')}</span>
-                                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Hours</span>
-                                    </div>
-                                    <span className="text-2xl md:text-4xl font-light text-brand-accent">:</span>
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-2xl md:text-4xl font-black">{String(timeLeft.minutes).padStart(2, '0')}</span>
-                                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Mins</span>
-                                    </div>
-                                    <span className="text-2xl md:text-4xl font-light text-brand-accent">:</span>
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-2xl md:text-4xl font-black">{String(timeLeft.seconds).padStart(2, '0')}</span>
-                                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Secs</span>
+                            {/* Live Minimalistic Countdown Display */}
+                            {!timeLeft.expired ? (
+                                <div className="max-w-md mx-auto bg-white/5 border border-white/10 rounded px-6 py-4 my-6 backdrop-blur-md">
+                                    <div className="flex gap-4 md:gap-6 justify-center font-mono text-white">
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.days).padStart(2, '0')}</span>
+                                            <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Days</span>
+                                        </div>
+                                        <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.hours).padStart(2, '0')}</span>
+                                            <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Hours</span>
+                                        </div>
+                                        <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                                            <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Mins</span>
+                                        </div>
+                                        <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                                            <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Secs</span>
+                                        </div>
                                     </div>
                                 </div>
+                            ) : (
+                                settings.dropDate && (
+                                    <div className="text-brand-accent font-mono text-xs tracking-widest my-8 animate-pulse">
+                                        THE DROP IS LIVE NOW!
+                                    </div>
+                                )
                             )}
 
                             <div className="flex flex-col items-center gap-4">
@@ -813,16 +821,16 @@
                             </div>
 
                             <div>
-                                <label className="text-[9px] text-gray-500 block mb-2 tracking-widest">SCHEDULE DROP DATE & TIME</label>
-                                <input type="datetime-local" value={dropForm.dropDate} onChange={e=>setDropForm({...dropForm, dropDate: e.target.value})} className="w-full p-4 text-[10px] uppercase font-black"/>
+                                <label className="text-[9px] text-gray-500 block mb-2 tracking-widest font-mono">CHOOSE DROP DATE & TIME</label>
+                                <input type="datetime-local" value={dropForm.dropDate} onChange={e=>setDropForm({...dropForm, dropDate: e.target.value})} className="w-full p-4 text-[10px] uppercase font-black font-mono"/>
                             </div>
 
                             <div>
-                                <label className="text-[9px] text-gray-500 block mb-2 tracking-widest">DROP TEASER IMAGE</label>
+                                <label className="text-[9px] text-gray-500 block mb-2 tracking-widest">TEASER IMAGE</label>
                                 <input type="file" onChange={(e)=>{ const file = e.target.files[0]; if(file) { compressImage(file).then(res => setDropForm({...dropForm, dropImage: res})); } }} className="text-[10px] w-full"/>
                             </div>
 
-                            <button onClick={() => { updateSettings({...settings, ...dropForm}); alert('Drop configuration updated successfully!'); }} className="w-full bg-white text-black font-black py-5 uppercase text-[10px] tracking-widest">Update config</button>
+                            <button onClick={() => { updateSettings({...settings, ...dropForm}); alert('Saved'); }} className="w-full bg-white text-black font-black py-5 uppercase text-[10px] tracking-widest font-mono">Update config</button>
                         </div>
                     )}
                 </div>
@@ -1013,7 +1021,7 @@
             );
         };
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render((<App />));
     </script>
 </body>
 </html>
