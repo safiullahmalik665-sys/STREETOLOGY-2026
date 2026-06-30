@@ -264,7 +264,22 @@
             );
         };
 
-        // Highly-Optimized Live Countdown Timer Component
+        // Retro-futuristic Glassmorphic Digit Clock Card Component
+        const DigitCard = ({ digit }) => {
+            return (
+                <div className="w-10 h-16 md:w-16 md:h-24 bg-gradient-to-b from-zinc-900/90 to-black border border-white/20 rounded-md flex items-center justify-center shadow-2xl relative overflow-hidden">
+                    {/* Horizontal dividing split line matching the flip design */}
+                    <div className="absolute inset-x-0 top-1/2 h-[1.5px] bg-black/60 z-10"></div>
+                    {/* Glossy top-half lighting highlight */}
+                    <div className="absolute inset-x-0 top-0 h-1/2 bg-white/[0.04] pointer-events-none"></div>
+                    <span className="text-3xl md:text-5xl font-mono font-bold text-white tracking-tight leading-none select-none z-0">
+                        {digit}
+                    </span>
+                </div>
+            );
+        };
+
+        // Highly-Optimized Live Flip-Style Countdown Timer
         const CountdownTimer = ({ targetDate }) => {
             const calculateTime = () => {
                 if (!targetDate) return null;
@@ -307,26 +322,33 @@
                 );
             }
 
+            const renderBlock = (value, label) => {
+                const str = String(value).padStart(2, '0');
+                return (
+                    <div className="flex flex-col items-center">
+                        <div className="flex gap-1">
+                            <DigitCard digit={str[0]} />
+                            <DigitCard digit={str[1]} />
+                        </div>
+                        <span className="text-[9px] md:text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em] mt-3">
+                            {label}
+                        </span>
+                    </div>
+                );
+            };
+
             return (
-                <div className="flex gap-4 md:gap-6 justify-center font-mono text-white py-1">
-                    <div className="flex flex-col items-center">
-                        <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.days).padStart(2, '0')}</span>
-                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Days</span>
-                    </div>
-                    <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
-                    <div className="flex flex-col items-center">
-                        <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.hours).padStart(2, '0')}</span>
-                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Hours</span>
-                    </div>
-                    <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
-                    <div className="flex flex-col items-center">
-                        <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.minutes).padStart(2, '0')}</span>
-                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Mins</span>
-                    </div>
-                    <span className="text-3xl md:text-5xl font-light text-gray-700 animate-pulse">:</span>
-                    <div className="flex flex-col items-center">
-                        <span className="text-3xl md:text-5xl font-black text-brand-accent tracking-tight">{String(timeLeft.seconds).padStart(2, '0')}</span>
-                        <span className="text-[8px] text-gray-500 tracking-widest mt-1 uppercase">Secs</span>
+                <div className="flex flex-col items-center">
+                    {/* Visual Launching Title with Violet to Pink/Red Gradient matching the reference screenshot */}
+                    <h2 className="text-2xl md:text-4xl font-extrabold uppercase tracking-[0.2em] mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 drop-shadow">
+                        LAUNCHING SOON
+                    </h2>
+                    
+                    <div className="flex gap-4 md:gap-6 justify-center items-center">
+                        {renderBlock(timeLeft.days, 'Days')}
+                        {renderBlock(timeLeft.hours, 'Hours')}
+                        {renderBlock(timeLeft.minutes, 'Minutes')}
+                        {renderBlock(timeLeft.seconds, 'Seconds')}
                     </div>
                 </div>
             );
@@ -431,14 +453,14 @@
                             <p className="text-brand-accent font-mono text-[10px] tracking-[0.5em] mb-3 uppercase">Upcoming Drop</p>
                             <h1 className="text-3xl sm:text-4xl md:text-7xl font-black text-white leading-none mb-4 uppercase tracking-tighter break-words">{settings.dropTitle || "RESTRICTED ACCESS"}</h1>
                             
-                            {/* Live Active Countdown Component */}
+                            {/* Visual Custom Countdown Area directly on Lock/Front-Teaser page */}
                             {settings.dropDate && (
-                                <div className="max-w-md mx-auto bg-white/5 border border-white/10 rounded px-6 py-4 my-6 backdrop-blur-md">
+                                <div className="max-w-2xl mx-auto my-6 px-4">
                                     <CountdownTimer targetDate={settings.dropDate} />
                                 </div>
                             )}
 
-                            <div className="flex flex-col items-center gap-4">
+                            <div className="flex flex-col items-center gap-4 mt-8">
                                 <span className="bg-white text-black px-8 py-2 font-black tracking-widest text-[10px]">{settings.dropDate ? 'LAUNCHING SOON' : 'LOCKED'}</span>
                                 <a href="#auth" className="text-[10px] text-gray-600 hover:text-white mt-4 flex items-center gap-2 uppercase font-bold tracking-widest"><Icon name="User" size={12}/> Login</a>
                             </div>
